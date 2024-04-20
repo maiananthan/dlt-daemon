@@ -66,17 +66,18 @@
  * aw          13.01.2010   initial
  */
 
-#include <ctype.h>      /* for isprint() */
-#include <stdlib.h>     /* for atoi() */
-#include <sys/stat.h>   /* for S_IRUSR, S_IWUSR, S_IRGRP, S_IROTH */
-#include <fcntl.h>      /* for open() */
-#include <sys/uio.h>    /* for writev() */
+#include "dlt_common.h"
+#include <ctype.h> /* for isprint() */
 #include <errno.h>
-#include <string.h>
+#include <fcntl.h> /* for open() */
 #include <glob.h>
-#include <syslog.h>
 #include <signal.h>
+#include <stdlib.h> /* for atoi() */
+#include <string.h>
 #include <sys/socket.h>
+#include <sys/stat.h> /* for S_IRUSR, S_IWUSR, S_IRGRP, S_IROTH */
+#include <sys/uio.h>  /* for writev() */
+#include <syslog.h>
 #ifdef __linux__
 #   include <linux/limits.h>
 #else
@@ -119,6 +120,7 @@ typedef struct {
     int vflag;
     int yflag;
     int uflag;
+    int resetflag;
     char *ovalue;
     char *ovaluebase; /* ovalue without ".dlt" */
     char *fvalue;       /* filename for space separated filter file (<AppID> <ContextID>) */
@@ -162,6 +164,7 @@ void usage()
     printf("  -R            Enable resync serial header\n");
     printf("  -y            Serial device mode\n");
     printf("  -u            UDP multicast mode\n");
+    printf("  -C            Resets terminal after every successful connect\n");
     printf("  -i addr       Host interface address\n");
     printf("  -b baudrate   Serial device baudrate (Default: 115200)\n");
     printf("  -e ecuid      Set ECU ID (Default: RECV)\n");
@@ -344,7 +347,7 @@ int main(int argc, char *argv[])
     /* Fetch command line arguments */
     opterr = 0;
 
-    while ((c = getopt (argc, argv, "vashSRyuxmf:j:o:e:b:c:p:i:")) != -1)
+    while ((c = getopt(argc, argv, "vashSRyuxmCf:j:o:e:b:c:p:i:")) != -1)
         switch (c) {
         case 'v':
         {
@@ -369,6 +372,10 @@ int main(int argc, char *argv[])
         case 'm':
         {
             dltdata.mflag = 1;
+            break;
+        }
+        case 'C': {
+            dltdata.resetflag = 1;
             break;
         }
         case 'h':
@@ -617,6 +624,10 @@ int main(int argc, char *argv[])
     /* Connect to TCP socket or open serial device */
     if (dlt_client_connect(&dltclient, dltdata.vflag) != DLT_RETURN_ERROR) {
 
+        if (dltdata.resetflag == 1) {
+            printf("\033c");
+        }
+
         /* Dlt Client Main Loop */
         dlt_client_main_loop(&dltclient, &dltdata, dltdata.vflag);
 
@@ -664,14 +675,49 @@ int dlt_receive_message_callback(DltMessage *message, void *data)
         }
         else if (dltdata->aflag)
         {
+            int header_flags = 0 | DLT_HEADER_SHOW_TIME | DLT_HEADER_SHOW_APID |
+                               DLT_HEADER_SHOW_CTID | DLT_HEADER_SHOW_MSGTYPE |
+                               DLT_HEADER_SHOW_MSGSUBTYPE;
+            dlt_message_header_flags(message, text, DLT_RECEIVE_BUFSIZE,
+                                     header_flags, dltdata->vflag);
 
-            dlt_message_header(message, text, DLT_RECEIVE_BUFSIZE, dltdata->vflag);
+            char *log_info[] = {
+                "", "fatal", "error", "warn", "info", "debug", "verbose", "",
+                "", "",      "",      "",     "",     "",      "",        ""};
 
-            printf("%s ", text);
+            if (DLT_GET_MSIN_MSTP(message->extendedheader->msin) ==
+                DLT_TYPE_LOG) {
+                if (strcmp(log_info[DLT_GET_MSIN_MTIN(
+                               message->extendedheader->msin)],
+                           "error") == 0) {
+                    // red
+                    printf("\e[31m");
+                }
+                else if (strcmp(log_info[DLT_GET_MSIN_MTIN(
+                                    message->extendedheader->msin)],
+                                "warn") == 0) {
+                    // yellow
+                    printf("\e[33m");
+                }
+                else if (strcmp(log_info[DLT_GET_MSIN_MTIN(
+                                    message->extendedheader->msin)],
+                                "fatal") == 0) {
+                    // magenta
+                    printf("\e[35m");
+                }
+                else if (strcmp(log_info[DLT_GET_MSIN_MTIN(
+                                    message->extendedheader->msin)],
+                                "info") == 0) {
+                    // blue
+                    printf("\e[34m");
+                }
+            }
+
+            printf("%s", text);
 
             dlt_message_payload(message, text, DLT_RECEIVE_BUFSIZE, DLT_OUTPUT_ASCII, dltdata->vflag);
 
-            printf("[%s]\n", text);
+            printf("| %s\e[0m\n", text);
         }
         else if (dltdata->mflag)
         {
