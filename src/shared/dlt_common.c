@@ -706,8 +706,9 @@ DltReturnValue dlt_message_header_flags(DltMessage *msg, char *text, size_t text
         time_t tt = msg->storageheader->seconds;
         tzset();
         localtime_r(&tt, &timeinfo);
-        strftime (buffer, sizeof(buffer), "%Y/%m/%d %H:%M:%S", &timeinfo);
-        snprintf(text, textlength, "%s.%.6d ", buffer, msg->storageheader->microseconds);
+        strftime(buffer, sizeof(buffer), "%m/%d %H:%M:%S", &timeinfo);
+        snprintf(text, textlength, "%s.%.3d ", buffer,
+                 msg->storageheader->microseconds % 1000);
     }
 
     if ((flags & DLT_HEADER_SHOW_TMSTP) == DLT_HEADER_SHOW_TMSTP) {
@@ -728,13 +729,14 @@ DltReturnValue dlt_message_header_flags(DltMessage *msg, char *text, size_t text
             dlt_print_id(text + strlen(text), msg->headerextra.ecu);
         else
             dlt_print_id(text + strlen(text), msg->storageheader->ecu);
+
+        snprintf(text + strlen(text), textlength - strlen(text), " ");
     }
 
-    /* print app id and context id if extended header available, else '----' */ #
+/* print app id and context id if extended header available, else '----' */
+#
 
     if ((flags & DLT_HEADER_SHOW_APID) == DLT_HEADER_SHOW_APID) {
-        snprintf(text + strlen(text), textlength - strlen(text), " ");
-
         if ((DLT_IS_HTYP_UEH(msg->standardheader->htyp)) && (msg->extendedheader->apid[0] != 0))
             dlt_print_id(text + strlen(text), msg->extendedheader->apid);
         else
@@ -761,9 +763,15 @@ DltReturnValue dlt_message_header_flags(DltMessage *msg, char *text, size_t text
         }
 
         if ((flags & DLT_HEADER_SHOW_MSGSUBTYPE) == DLT_HEADER_SHOW_MSGSUBTYPE) {
-            if ((DLT_GET_MSIN_MSTP(msg->extendedheader->msin)) == DLT_TYPE_LOG)
-                snprintf(text + strlen(text), textlength - strlen(text), "%s",
-                         log_info[DLT_GET_MSIN_MTIN(msg->extendedheader->msin)]);
+            if ((DLT_GET_MSIN_MSTP(msg->extendedheader->msin)) ==
+                DLT_TYPE_LOG) {
+                char *log_tr_info[] = {
+                    "", "ftl-", "err-", "warn", "info", "dbg-", "verb", "",
+                    "", "",     "",     "",     "",     "",     "",     ""};
+                snprintf(
+                    text + strlen(text), textlength - strlen(text), "%.4s",
+                    log_tr_info[DLT_GET_MSIN_MTIN(msg->extendedheader->msin)]);
+            }
 
             if ((DLT_GET_MSIN_MSTP(msg->extendedheader->msin)) == DLT_TYPE_APP_TRACE)
                 snprintf(text + strlen(text), textlength - strlen(text), "%s",
