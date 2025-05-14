@@ -1,12 +1,28 @@
 # cmake options to enabled if required
 
-# setting up cmake to include during cmake configuration
-# cmake .. -DCMAKE_INSTALL_PREFIX=$PWD/../../dlt-daemon-install-dir -DCMAKE_PROJECT_TOP_LEVEL_INCLUDES=$PWD/../extra.cmake
+# General Options
+set(WITH_DLT_USE_IPv6 OFF CACHE BOOL "" FORCE)
+set(WITH_DLT_EXAMPLES OFF CACHE BOOL "" FORCE)
 
-# enabling extended filtering based on json
+set(WITH_DLT_CONSOLE_WO_CTRL ON CACHE BOOL "" FORCE)
+set(WITH_DLT_CONSOLE_WO_SBTM ON CACHE BOOL "" FORCE)
+set(WITH_DLT_CONSOLE_RECEIVE ON CACHE BOOL "" FORCE)
+set(WITH_DLT_CONSOLE_CONVERT ON CACHE BOOL "" FORCE)
+set(WITH_DLT_CONSOLE_CONTROL OFF CACHE BOOL "" FORCE)
+set(WITH_DLT_CONSOLE_PASSIVE_NODE_CTRL OFF CACHE BOOL "" FORCE)
+
+set(WITH_DLT_TESTS OFF CACHE BOOL "" FORCE)
+
+# Command Line Tool Options
 set(WITH_EXTENDED_FILTERING ON CACHE BOOL "" FORCE)
-# enabling exporting compile commands
+
+# Experimental Features Options
+set(WITH_DLT_CXX11_EXT ON CACHE BOOL "" FORCE)
+
+# CMake options
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON CACHE BOOL "" FORCE)
+
+set(CMAKE_BUILD_TYPE "Debug" CACHE STRING "" FORCE)
 
 #
 # end of file

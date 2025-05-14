@@ -766,10 +766,10 @@ DltReturnValue dlt_message_header_flags(DltMessage *msg, char *text, size_t text
             if ((DLT_GET_MSIN_MSTP(msg->extendedheader->msin)) ==
                 DLT_TYPE_LOG) {
                 char *log_tr_info[] = {
-                    "", "ftl-", "err-", "warn", "info", "dbg-", "verb", "",
+                    "", "F", "E", "W", "I", "D", "V", "",
                     "", "",     "",     "",     "",     "",     "",     ""};
                 snprintf(
-                    text + strlen(text), textlength - strlen(text), "%.4s",
+                    text + strlen(text), textlength - strlen(text), "%.1s",
                     log_tr_info[DLT_GET_MSIN_MTIN(msg->extendedheader->msin)]);
             }
 

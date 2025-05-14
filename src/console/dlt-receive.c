@@ -125,7 +125,6 @@ typedef struct {
     int yflag;
     int uflag;
     int rflag;
-    int resetflag;
     char *ovalue;
     char *ovaluebase; /* ovalue without ".dlt" */
     char *fvalue;       /* filename for space separated filter file (<AppID> <ContextID>) */
@@ -170,7 +169,6 @@ void usage()
     printf("  -R            Enable resync serial header\n");
     printf("  -y            Serial device mode\n");
     printf("  -u            UDP multicast mode\n");
-    printf("  -C            Resets terminal after every successful connect\n");
     printf("  -r msecs      Reconnect server with milli seconds specified\n");
     printf("  -i addr       Host interface address\n");
     printf("  -b baudrate   Serial device baudrate (Default: 115200)\n");
@@ -379,10 +377,6 @@ int main(int argc, char *argv[])
         case 'm':
         {
             dltdata.mflag = 1;
-            break;
-        }
-        case 'C': {
-            dltdata.resetflag = 1;
             break;
         }
         case 'h':
@@ -637,10 +631,6 @@ int main(int argc, char *argv[])
         /* Connect to TCP socket or open serial device */
         if (dlt_client_connect(&dltclient, dltdata.vflag) != DLT_RETURN_ERROR) {
 
-            if (dltdata.resetflag == 1) {
-                printf("\033c");
-            }
-
             /* Dlt Client Main Loop */
             dlt_client_main_loop(&dltclient, &dltdata, dltdata.vflag);
 
@@ -708,28 +698,18 @@ int dlt_receive_message_callback(DltMessage *message, void *data)
                 "", "fatal", "error", "warn", "info", "debug", "verbose", "",
                 "", "",      "",      "",     "",     "",      "",        ""};
 
-            if (DLT_GET_MSIN_MSTP(message->extendedheader->msin) ==
-                DLT_TYPE_LOG) {
-                if (strcmp(log_info[DLT_GET_MSIN_MTIN(
-                               message->extendedheader->msin)],
+            if (DLT_GET_MSIN_MSTP(message->extendedheader->msin) == DLT_TYPE_LOG) {
+                if (strcmp(log_info[DLT_GET_MSIN_MTIN(message->extendedheader->msin)],
                            "error") == 0) {
                     // red
                     printf("\e[31m");
                 }
-                else if (strcmp(log_info[DLT_GET_MSIN_MTIN(
-                                    message->extendedheader->msin)],
+                else if (strcmp(log_info[DLT_GET_MSIN_MTIN(message->extendedheader->msin)],
                                 "warn") == 0) {
                     // yellow
                     printf("\e[33m");
                 }
-                else if (strcmp(log_info[DLT_GET_MSIN_MTIN(
-                                    message->extendedheader->msin)],
-                                "fatal") == 0) {
-                    // magenta
-                    printf("\e[35m");
-                }
-                else if (strcmp(log_info[DLT_GET_MSIN_MTIN(
-                                    message->extendedheader->msin)],
+                else if (strcmp(log_info[DLT_GET_MSIN_MTIN(message->extendedheader->msin)],
                                 "info") == 0) {
                     // blue
                     printf("\e[34m");
